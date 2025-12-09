@@ -35,10 +35,14 @@ while rval:
     output = model(grayscale)
     compute_end = time.time()
     fps = 1 / (compute_end - compute_start)
+    _, predicted = torch.max(output.data, 1)
+    label = utils.label_to_text[predicted[0].item()]
 
     frame_time_deque.append(fps)
     fps_text = f"FPS: {int(sum(frame_time_deque) / len(frame_time_deque))}"
     cv2.putText(frame, fps_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+    label_text = f"Label: {label}"
+    cv2.putText(frame, label_text, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
 
     cv2.imshow("preview", frame)
