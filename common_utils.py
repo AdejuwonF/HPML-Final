@@ -1,0 +1,164 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import DataLoader
+import torch.optim as optim
+import wandb
+import time
+
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+else:
+    device = torch.device('cpu')
+print(device)
+
+label_to_text = {
+    0: "Angry", 
+    1: "Disgust", 
+    2: "Fear", 
+    3: "Happy", 
+    4: "Sad", 
+    5: "Surprise", 
+    6: "Neutral"
+}
+
+class BaseModel(nn.Module):
+    def __init__(self):
+        super(BaseModel, self).__init__()
+        self.conv1 = nn.Conv2d(1, 16, 3, padding=1)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv2d(16, 64, 3, padding=1)
+        self.conv3 = nn.Conv2d(64, 256, 3, padding=1)
+        self.conv4 = nn.Conv2d(256, 1024, 3, padding=1)
+        self.conv5 = nn.Conv2d(1024, 2048, 3, padding=0)
+        self.fc1 = nn.Linear(2048, 512)
+        self.fc2 = nn.Linear(512, 128)
+        self.fc3 = nn.Linear(128, 7)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = self.pool(F.relu(self.conv3(x)))
+        x = self.pool(F.relu(self.conv4(x)))
+        x = F.relu(self.conv5(x))
+        x = x.view(-1, x.shape[1] * x.shape[2] * x.shape[3])
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+def test(model: nn.Module, dataloader: DataLoader, max_samples=None) -> float:
+    criterion = nn.CrossEntropyLoss()
+    correct = 0
+    total = 0
+    total_loss = 0
+    n_inferences = 0
+    model.eval()
+    with torch.no_grad():
+        for data in dataloader:
+            images, labels = data
+
+            images = images.to(device)
+            labels = labels.to(device)
+
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+            loss = criterion(outputs, labels)
+            total_loss += loss.item()
+
+            if max_samples:
+                n_inferences += images.shape[0]
+                if n_inferences > max_samples:
+                    break
+
+    return total_loss / total, 100 * correct / total
+
+def benchmark_model(model: nn.Module, dataloader: DataLoader, max_samples = None):
+    total = 0
+    total_time = 0
+    model.eval()
+    with torch.no_grad():
+        for data in dataloader:
+            images, labels = data
+
+            images = images.to(device)
+            labels = labels.to(device)
+            start_time = time.time()
+            outputs = model(images)    
+            end_time = time.time()    
+            total += labels.size(0)    
+            total_time += end_time - start_time
+            outputs[0]
+    print("Total Images Processed : ", total)
+    print("Total Time : ", total_time, "seconds")
+    print("Average Time: ", total_time / total, "seconds")
+    print("Average FPS: ", 1 / ( total_time / total))
+
+
+def train(run: wandb.Run, model: nn.Module, train_dataloader: DataLoader, test_dataloader: DataLoader, num_epochs=10):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    
+    train_loss, train_acc = test(model, train_dataloader)
+    test_loss, test_acc = test(model, test_dataloader)
+    print("Before Training")
+    print(
+        """
+        Train Loss: {0}
+        Train Acc: {1}
+        Test Loss: {2}
+        Test Acc: {3}    
+        """.format(train_loss, train_acc, test_loss, test_acc)
+    )
+    if (run is not None):
+        run.log({"train/loss": train_loss, "test/loss": test_loss, 
+                "train/acc": train_acc, "test/acc": test_acc})
+    for epoch in range(num_epochs):  # loop over the dataset multiple times
+
+        running_loss = 0.0
+        epoch_loss = 0.0
+        model.train()
+        for i, data in enumerate(train_dataloader, 0):
+            # get the inputs; data is a list of [inputs, labels]
+            inputs, labels = data
+
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+
+            # zero the parameter gradients
+            optimizer.zero_grad()
+
+            # forward + backward + optimize
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            # print statistics
+            running_loss += loss.item()
+            epoch_loss += loss.item()
+            if i % 1000 == 999:    # print every 1000 mini-batches
+                print('[%d, %5d] loss: %.3f' %
+                    (epoch + 1, i + 1, running_loss / 1000))
+                running_loss = 0.0
+        train_loss, train_acc = test(model, train_dataloader)
+        test_loss, test_acc = test(model, test_dataloader)
+        print("Epoch {0} Finished".format(epoch + 1))
+        print(
+            """
+            Train Loss: {0}
+            Train Acc: {1}
+            Test Loss: {2}
+            Test Acc: {3}
+            """.format(train_loss, train_acc, test_loss, test_acc)
+        )
+
+        if (run is not None):
+            run.log({"train/loss": train_loss, "test/loss": test_loss, 
+                    "train/acc": train_acc, "test/acc": test_acc})
+
+    print('Finished Training')
+
+
