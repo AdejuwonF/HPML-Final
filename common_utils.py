@@ -10,7 +10,6 @@ if torch.cuda.is_available():
     device = torch.device('cuda')
 else:
     device = torch.device('cpu')
-print(device)
 
 label_to_text = {
     0: "Angry", 
@@ -30,21 +29,25 @@ class BaseModel(nn.Module):
         self.conv2 = nn.Conv2d(16, 64, 3, padding=1)
         self.conv3 = nn.Conv2d(64, 256, 3, padding=1)
         self.conv4 = nn.Conv2d(256, 1024, 3, padding=1)
-        self.conv5 = nn.Conv2d(1024, 2048, 3, padding=0)
-        self.fc1 = nn.Linear(2048, 512)
-        self.fc2 = nn.Linear(512, 128)
-        self.fc3 = nn.Linear(128, 7)
+        self.conv5 = nn.Conv2d(1024, 2048, 3, padding=1)
+        self.conv6 = nn.Conv2d(2048, 4192, 3, padding=0)
+        self.fc1 = nn.Linear(4192, 2048)
+        self.fc2 = nn.Linear(2048, 1024)
+        self.fc3 = nn.Linear(1024, 256)
+        self.fc4 = nn.Linear(256, 7)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
         x = self.pool(F.relu(self.conv3(x)))
         x = self.pool(F.relu(self.conv4(x)))
-        x = F.relu(self.conv5(x))
+        x = self.pool(F.relu(self.conv5(x)))
+        x = F.relu(self.conv6(x))
         x = x.view(-1, x.shape[1] * x.shape[2] * x.shape[3])
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)
         return x
 
 def test(model: nn.Module, dataloader: DataLoader, max_samples=None) -> float:
