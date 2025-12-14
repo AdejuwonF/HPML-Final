@@ -7,6 +7,7 @@ import wandb
 import time
 import os
 from torch.profiler import profile, ProfilerActivity, record_function
+import copy
 
 if torch.cuda.is_available():
     device = torch.device('cuda')
@@ -228,5 +229,14 @@ def train(run: wandb.Run, model: nn.Module, params: TrainingParams,
 
 
     print('Finished Training')
+
+def quantize_model(model, dataloader):
+    backend = "fbgemm"
+    quantized_model= QuantizedModelWrapper(copy.deepcopy(model), None)
+    quantized_model.qconfig = torch.quantization.get_default_qconfig(backend)
+    torch.quantization.prepare(quantized_model, inplace=True)
+    test(quantized_model, dataloader, 500)
+    torch.quantization.convert(quantized_model, inplace=True)
+    return quantized_model
 
 

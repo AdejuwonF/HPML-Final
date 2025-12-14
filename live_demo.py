@@ -13,6 +13,10 @@ prev_frame_time = 0
 cur_frame_time = 0
 frame_time_deque = deque(maxlen=30) 
 model = utils.BaseModel().to(utils.device)
+base_model = utils.BaseModel()
+base_model.load_state_dict(torch.load("base_model/checkpoint_6.pth", map_location=utils.device))
+base_model.to(utils.device)
+# model = torch.jit.load("pruned_model/jit_quantized.pth")
 # model.compile()
 transform = transforms.Normalize((0.5), (0.5))
 
