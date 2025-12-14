@@ -12,11 +12,11 @@ import time
 prev_frame_time = 0
 cur_frame_time = 0
 frame_time_deque = deque(maxlen=30) 
-model = utils.BaseModel().to(utils.device)
-base_model = utils.BaseModel()
-base_model.load_state_dict(torch.load("base_model/checkpoint_6.pth", map_location=utils.device))
-base_model.to(utils.device)
-# model = torch.jit.load("pruned_model/jit_quantized.pth")
+# model = utils.BaseModel().to(utils.device)
+# base_model = utils.BaseModel()
+# base_model.load_state_dict(torch.load("base_model/checkpoint_6.pth", map_location=utils.device))
+# base_model.to(utils.device)
+model = torch.jit.load("pruned_model/jit_quantized.pth")
 # model.compile()
 transform = transforms.Normalize((0.5), (0.5))
 
@@ -30,6 +30,7 @@ else:
 
 while rval:
     grayscale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    grayscale = cv2.resize(grayscale, (48, 48))
     grayscale = cv2.resize(grayscale, (96, 96))
     grayscale = torch.from_numpy(grayscale).float()
     grayscale = torch.unsqueeze(torch.unsqueeze(grayscale, 0), 0)

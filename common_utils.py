@@ -116,15 +116,14 @@ def benchmark_model(model: nn.Module, dataloader: DataLoader, max_samples = None
     print("Average Time: ", total_time / total, "seconds")
     print("Average FPS: ", 1 / ( total_time / total))
     return {
-        "Total Images": total,
-        "tot_time": total_time,
+        "total_images": total,
+        "total_time": total_time,
         "mean_time": total_time / total,
         "mean_fps": 1 / ( total_time / total)
     }
 
 def profile_model(model: nn.Module, dataloader: DataLoader, max_samples=None):
     total = 0
-    total_time = 0
     model.eval()
     with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], 
                  profile_memory=False, record_shapes=False) as prof:
@@ -133,12 +132,9 @@ def profile_model(model: nn.Module, dataloader: DataLoader, max_samples=None):
                 images, labels = data
                 images = images.to(device)
                 labels = labels.to(device)
-                start_time = time.time()
                 with record_function("model_inference"):
                     outputs = model(images)    
-                end_time = time.time()    
                 total += labels.size(0)    
-                total_time += end_time - start_time
                 outputs[0]
                 if (total > max_samples):
                     break
