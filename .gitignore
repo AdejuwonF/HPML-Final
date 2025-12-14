@@ -1,2 +1,6 @@
 fer2013/*
 __pycache__/*
+base_model/*
+pruned_model/*
+wandb/*
+sensitivity.*
