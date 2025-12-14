@@ -5,6 +5,8 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 import wandb
 import time
+import os
+from torch.profiler import profile, ProfilerActivity, record_function
 
 if torch.cuda.is_available():
     device = torch.device('cuda')
@@ -94,16 +96,61 @@ def benchmark_model(model: nn.Module, dataloader: DataLoader, max_samples = None
             total += labels.size(0)    
             total_time += end_time - start_time
             outputs[0]
+            if (total > max_samples):
+                break
     print("Total Images Processed : ", total)
     print("Total Time : ", total_time, "seconds")
     print("Average Time: ", total_time / total, "seconds")
     print("Average FPS: ", 1 / ( total_time / total))
+    return {
+        "Total Images": total,
+        "tot_time": total_time,
+        "mean_time": total_time / total,
+        "mean_fps": 1 / ( total_time / total)
+    }
+
+def profile_model(model: nn.Module, dataloader: DataLoader, max_samples=None):
+    total = 0
+    total_time = 0
+    model.eval()
+    with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], 
+                 profile_memory=False, record_shapes=False) as prof:
+        with torch.no_grad():
+            for data in dataloader:
+                images, labels = data
+                images = images.to(device)
+                labels = labels.to(device)
+                start_time = time.time()
+                with record_function("model_inference"):
+                    outputs = model(images)    
+                end_time = time.time()    
+                total += labels.size(0)    
+                total_time += end_time - start_time
+                outputs[0]
+                if (total > max_samples):
+                    break
+    return prof
+
+class TrainingParams:
+    def __init__(self):
+        self.checkpoint = False
+        self.save_state_dict = True
+        self.dir_name = ""
+        self.lr = .0001
 
 
-def train(run: wandb.Run, model: nn.Module, train_dataloader: DataLoader, test_dataloader: DataLoader, num_epochs=10):
+def train(run: wandb.Run, model: nn.Module, params: TrainingParams,
+          train_dataloader: DataLoader, test_dataloader: DataLoader, 
+          num_epochs=10):
+    if (params.checkpoint and not params.dir_name):
+        print ("Error: When checkpointing is active, directory name must be provided")
+        return
+    if (params.dir_name):
+        os.makedirs(params.dir_name, exist_ok=True)
+
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
-    
+    # optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    optimizer = optim.Adam(model.parameters(), params.lr)
     train_loss, train_acc = test(model, train_dataloader)
     test_loss, test_acc = test(model, test_dataloader)
     print("Before Training")
@@ -161,6 +208,12 @@ def train(run: wandb.Run, model: nn.Module, train_dataloader: DataLoader, test_d
         if (run is not None):
             run.log({"train/loss": train_loss, "test/loss": test_loss, 
                     "train/acc": train_acc, "test/acc": test_acc})
+        if (params.checkpoint): #Be careful this can and will just overwrite files
+            if (params.save_state_dict):
+                torch.save(model.state_dict(), os.path.join(params.dir_name, "checkpoint_{0}.pth".format(epoch + 1)))
+            else:
+                torch.save(model, os.path.join(params.dir_name, "checkpoint_{0}.pth".format(epoch + 1)))
+
 
     print('Finished Training')
 
