@@ -4,3 +4,5 @@ base_model/*
 pruned_model/*
 wandb/*
 sensitivity.*
+*.pkl
+*.txt
