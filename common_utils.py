@@ -52,6 +52,18 @@ class BaseModel(nn.Module):
         x = self.fc4(x)
         return x
 
+class QuantizedModelWrapper(nn.Module):
+    def __init__(self, model, backend):
+        super(QuantizedModelWrapper, self).__init__()
+        self.model = model
+        self.quant = torch.quantization.QuantStub()
+        self.dequant = torch.ao.quantization.DeQuantStub()
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.quant(x)
+        x = self.model(x)
+        x = self.dequant(x)
+        return x
+
 def test(model: nn.Module, dataloader: DataLoader, max_samples=None) -> float:
     criterion = nn.CrossEntropyLoss()
     correct = 0
