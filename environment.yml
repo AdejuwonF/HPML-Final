@@ -205,7 +205,6 @@ dependencies:
   - smmap=5.0.2=pyhd8ed1ab_0
   - stack_data=0.6.3=pyhd8ed1ab_1
   - svt-av1=1.2.0=h27087fc_0
-  - sympy=1.14.0=pyh2585a3b_105
   - tbb=2021.13.0=h8d10470_4
   - tk=8.6.13=noxft_ha0e22de_103
   - torchaudio=2.5.1=py312_cu124
@@ -255,4 +254,8 @@ dependencies:
   - zlib-ng=2.2.5=hde8ca8f_1
   - zstandard=0.25.0=py312h5253ce2_1
   - zstd=1.5.7=hb8e6e7a_2
+  - pip:
+      - fsspec==2025.12.0
+      - sympy==1.13.1
+      - torch-pruning==1.6.1
 prefix: /opt/conda/envs/HW4
