@@ -1,4 +1,5 @@
-Code for my HPML Final Project "Optimizing Deep Learning Inference on a MacBook Pro"
+Code for my HPML Final Project "Optimizing Deep Learning Inference on a MacBook Pro".  This repository contains an E2E process for training a model on the FER2013 dataset and then applying model
+compilation, structured pruning and integer quantization to the model to imrpove performance.  It also contains code to benchmark performance and accuracy for these models.
 
 ## Prerequisites
 - Download the [FER2013](https://www.kaggle.com/datasets/msambare/fer2013) dataset and place it in the same directory as these scrtipts
