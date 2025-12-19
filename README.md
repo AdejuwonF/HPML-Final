@@ -1,5 +1,6 @@
 Code for my HPML Final Project "Optimizing Deep Learning Inference on a MacBook Pro".  This repository contains an E2E process for training a model on the FER2013 dataset and then applying model
-compilation, structured pruning and integer quantization to the model to imrpove performance.  It also contains code to benchmark performance and accuracy for these models.
+compilation, structured pruning and integer quantization to the model to imrpove performance.  It also contains code to benchmark performance and accuracy for these models.  Benchmarks for performance were run on the CPU of a 2018 MacBook Pro.
+Weights And Biases Link: https://api.wandb.ai/links/ajf2243-columbia-university/fw5c2xtn
 
 ## Prerequisites
 - Download the [FER2013](https://www.kaggle.com/datasets/msambare/fer2013) dataset and place it in the same directory as these scrtipts
@@ -19,3 +20,16 @@ will be serialized as the complete model, not just the state dict, since we don'
 uncompiled version of your 4 models (baseline, quantized, pruned, pruned+ quantized).  It wil save these stats to Weights & Biases as well as produce matplot graphs comparing them.  The notebook will also profile the models using Pytorch's builtin profiler.
 Results of the benchmarks will be saved as a pickled dictionary and the profile results for cpu usage and memory usage will be written to a text document.
 - Finally edit [live_demo.py](https://github.com/AdejuwonF/HPML-Final/blob/master/live_demo.py) to load in your chosen model and run the python script.  It uses opencv to capture video from your webcam, so a compatible webcam is required.
+
+## Results
+For a full wrietup of results refer to the [final report](https://github.com/AdejuwonF/HPML-Final/blob/master/writeups/HPML_Final_Project_Report.pdf) in the writeups folder.
+<p align="center">
+	<img src="https://github.com/AdejuwonF/HPML-Final/blob/master/images/benchmark_inference_times.png" width="800">
+	<img src="https://github.com/AdejuwonF/HPML-Final/blob/master/images/benchmark_fps.png" width="800">
+</p>
+While model compilation did not provide signficant benefits we see that both quantization and model pruning can produce signficant speedups to inference time, taking our inference time from 0.0611s to 0.0036s which is near 17x speedup.
+<p align="center">
+	<img src="https://github.com/AdejuwonF/HPML-Final/blob/master/images/benchmark_accuracies.png" width="800">
+</p>
+This comes at minimal impact on the test accuracy, only dropping 1% from 57.3 to 56.3.
+
