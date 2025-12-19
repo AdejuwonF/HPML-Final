@@ -126,7 +126,7 @@ def profile_model(model: nn.Module, dataloader: DataLoader, max_samples=None):
     total = 0
     model.eval()
     with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], 
-                 profile_memory=False, record_shapes=False) as prof:
+                 profile_memory=True, record_shapes=False) as prof:
         with torch.no_grad():
             for data in dataloader:
                 images, labels = data
